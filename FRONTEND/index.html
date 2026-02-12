@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gráfico de Luminosidade</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+        .conteiner{
+           display: flex;
+           flex-direction: column;
+           align-items: center;
+        }
+        .buttons{
+            display: flex;
+           align-items: center;
+           width: 200px;
+           justify-content: space-around;
+           gap: 10px;
+        }
+    .buttons button{
+background-color: #501fe6;
+color: white;
+padding: 8px;
+border: none;
+border-radius: 4px;
+width: 80px;
+    }
+    
+    .buttons p{
+        font-size: 1.5em;
+      
+    }
+    </style>
+</head>
+
+<body>
+    <h1>Gráfico de Luminosidade</h1>
+
+    <div class="conteiner">
+        <canvas id="grafico" width="400" height="200"></canvas>
+
+        <div class="buttons">
+            <button onclick="paginaAnterior()">Anterior</button>
+            <p id ="num"></p>
+            <button onclick="proximapagina()">Próximo</button>
+        </div>
+    </div>
+
+<script>
+    let paginaAtual = 1;
+    let meuGrafico;
+const numpaginas = document.getElementById('num');
+    async function lerDados() {
+        try {
+            const resposta = await fetch('http://10.0.0.110:3000/dados');
+            return await resposta.json();
+        } catch (error) {
+            console.error("Erro ao ler dados:", error);
+            return [];
+        }
+    }
+
+    async function criarGrafico(pagina) {
+        const data = await lerDados();
+       numpaginas.innerText = pagina ;
+       console.log(data);
+       if(meuGrafico){
+        meuGrafico.destroy();
+       }
+       
+       const itensPorPagina = 20;
+        const startIndex = (pagina - 1) * itensPorPagina;
+        const endIndex = startIndex + itensPorPagina;
+        const dadosPorPagina = data.slice(startIndex, endIndex);
+
+        const timestamps = dadosPorPagina.map(item => {
+            const date = new Date(item.timestamp);
+            return date.toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
+        });
+
+        const luminosidade = dadosPorPagina.map(item => item.luminosidade);
+
+        const ctx = document.getElementById('grafico').getContext('2d');
+         
+
+        meuGrafico = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: timestamps,
+                datasets: [{
+                    label: 'Luminosidade',
+                    data: luminosidade,
+                    borderWidth: 2,
+                    borderColor: 'blue'
+                }]
+            },options:{
+                scales:{
+                    y:{
+                        beginAtZero:true,
+                    }
+                }
+            }
+        })
+
+
+    }
+
+function proximapagina() { 
+
+    paginaAtual++;
+    criarGrafico(paginaAtual)
+}
+   function paginaAnterior() {
+
+    if(paginaAtual>1){
+        paginaAtual--;
+        criarGrafico(paginaAtual)
+    }
+   }
+
+
+    criarGrafico(1);
+
+    // Botões
+    document.getElementById("anterior").onclick = () => {
+        if (paginaAtual > 1) {
+            paginaAtual--;
+            criarGrafico(paginaAtual);
+        }
+    };
+
+    document.getElementById("proximo").onclick = () => {
+        paginaAtual++;
+        criarGrafico(paginaAtual);
+    };
+</script>
+
+</body>
+</html>
