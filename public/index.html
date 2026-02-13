@@ -54,7 +54,7 @@ width: 80px;
 const numpaginas = document.getElementById('num');
     async function lerDados() {
         try {
-            const resposta = await fetch('http://10.0.0.110:3000/dados');
+            const resposta = await fetch('/dados');
             return await resposta.json();
         } catch (error) {
             console.error("Erro ao ler dados:", error);
