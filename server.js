@@ -13,7 +13,7 @@ app.use(cors());
 app.use(bodyParser.json());
 app.use(express.static('public'));
 
-const bdURL = const bdURL = process.env.MONGO_URL;
+const bdURL = process.env.MONGO_URL;
 
 mongoose.connect(bdURL).then(
     () => {
