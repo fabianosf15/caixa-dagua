@@ -45,7 +45,7 @@ app.post('/dados', async (req, res) => {
 });
 
 
-// BUSCAR DADOS COM PAGINAÇÃO (CORRIGIDO)
+
 app.get('/dados', async (req, res) => {
     try {
 

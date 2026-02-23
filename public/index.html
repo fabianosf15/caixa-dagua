@@ -3,41 +3,76 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gráfico de Luminosidade</title>
+    <title>Monitor de Luminosidade</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
     <style>
-        .conteiner{
-           display: flex;
-           flex-direction: column;
-           align-items: center;
+        body {
+            background-color: #0f172a;
+            color: white;
+            font-family: Arial, Helvetica, sans-serif;
+            text-align: center;
         }
-        .buttons{
+
+        h1 {
+            margin-top: 20px;
+        }
+
+        .valor-atual {
+            font-size: 2.5em;
+            margin: 10px 0 20px 0;
+            color: #38bdf8;
+        }
+
+        .conteiner {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        canvas {
+            background-color: #1e293b;
+            padding: 15px;
+            border-radius: 12px;
+        }
+
+        .buttons {
             display: flex;
             align-items: center;
-            width: 200px;
+            width: 220px;
             justify-content: space-around;
             gap: 10px;
+            margin-top: 20px;
         }
-        .buttons button{
-            background-color: #501fe6;
+
+        .buttons button {
+            background-color: #2563eb;
             color: white;
             padding: 8px;
             border: none;
-            border-radius: 4px;
-            width: 80px;
+            border-radius: 6px;
+            width: 90px;
+            cursor: pointer;
+            transition: 0.2s;
         }
-        .buttons p{
-            font-size: 1.5em;
+
+        .buttons button:hover {
+            background-color: #1d4ed8;
+        }
+
+        .buttons p {
+            font-size: 1.3em;
         }
     </style>
 </head>
 
 <body>
-    <h1>Gráfico de Luminosidade</h1>
+
+    <h1>Monitor de Luminosidade</h1>
+    <div class="valor-atual" id="valorAtual">-- lx</div>
 
     <div class="conteiner">
-        <canvas id="grafico" width="400" height="200"></canvas>
+        <canvas id="grafico" width="700" height="350"></canvas>
 
         <div class="buttons">
             <button id="anterior">Anterior</button>
@@ -52,6 +87,7 @@ document.addEventListener("DOMContentLoaded", () => {
     let paginaAtual = 1;
     let meuGrafico;
     const numpaginas = document.getElementById('num');
+    const valorAtual = document.getElementById('valorAtual');
 
     async function lerDados(pagina) {
         try {
@@ -68,6 +104,8 @@ document.addEventListener("DOMContentLoaded", () => {
         const dadosPorPagina = await lerDados(pagina);
         numpaginas.innerText = pagina;
 
+        if (!dadosPorPagina.length) return;
+
         if (meuGrafico) {
             meuGrafico.destroy();
         }
@@ -79,6 +117,12 @@ document.addEventListener("DOMContentLoaded", () => {
 
         const luminosidade = dadosPorPagina.map(item => item.luminosidade);
 
+        // Mostra valor mais recente
+        valorAtual.innerText = luminosidade[0] + " lx";
+
+        const min = Math.min(...luminosidade);
+        const max = Math.max(...luminosidade);
+
         const ctx = document.getElementById('grafico').getContext('2d');
 
         meuGrafico = new Chart(ctx, {
@@ -86,18 +130,48 @@ document.addEventListener("DOMContentLoaded", () => {
             data: {
                 labels: timestamps,
                 datasets: [{
-                    label: 'Luminosidade',
                     data: luminosidade,
-                    borderWidth: 2,
-                    borderColor: 'blue',
+                    borderColor: '#38bdf8',
+                    borderWidth: 3,
+                    tension: 0.35,
+                    pointRadius: 3,
+                    pointHoverRadius: 6,
                     fill: false
                 }]
             },
             options: {
-                scales: {
-                    y: {
-                        beginAtZero: true
+                responsive: true,
+                interaction: {
+                    mode: 'index',
+                    intersect: false
+                },
+                plugins: {
+                    legend: {
+                        display: false
                     }
+                },
+                scales: {
+                    x: {
+                        ticks: {
+                            color: 'white'
+                        },
+                        grid: {
+                            color: 'rgba(255,255,255,0.05)'
+                        }
+                    },
+                    y: {
+                        ticks: {
+                            color: 'white'
+                        },
+                        grid: {
+                            color: 'rgba(255,255,255,0.05)'
+                        },
+                        suggestedMin: min - 20,
+                        suggestedMax: max + 20
+                    }
+                },
+                animation: {
+                    duration: 600
                 }
             }
         });
