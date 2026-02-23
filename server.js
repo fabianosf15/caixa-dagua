@@ -1,5 +1,5 @@
 const express = require('express');
-const bodyParser = require('body-parser')
+const bodyParser = require('body-parser');
 const mongoose = require('mongoose');
 const cors = require('cors');
 
@@ -7,57 +7,64 @@ const Dados = require('./models/dados');
 const app = express();
 const port = process.env.PORT || 3000;
 
-
-
 app.use(cors());
 app.use(bodyParser.json());
 app.use(express.static('public'));
 
 const bdURL = process.env.MONGO_URL;
 
-mongoose.connect(bdURL).then(
-    () => {
-        console.log('Conectado ao banco MongoDB')
-    }).catch((error) => {
-        console.error(error)
+mongoose.connect(bdURL)
+    .then(() => {
+        console.log('Conectado ao banco MongoDB');
     })
+    .catch((error) => {
+        console.error(error);
+    });
 
 
-
-
-
-
+// SALVAR DADOS
 app.post('/dados', async (req, res) => {
     try {
-        const {luminosidade} = req.body
+        const { luminosidade } = req.body;
 
-        const novoDado = new Dados({luminosidade});
+        const novoDado = new Dados({ luminosidade });
 
         await novoDado.save();
 
-
-     return res.status(201).send({ message: "dados salvos", luminosidade:luminosidade})
+        return res.status(201).send({
+            message: "dados salvos",
+            luminosidade: luminosidade
+        });
 
     } catch (error) {
-     return res.status(500).send({message: "erro ao salvar", erro:error.message})
+        return res.status(500).send({
+            message: "erro ao salvar",
+            erro: error.message
+        });
     }
-})
+});
 
+
+// BUSCAR DADOS COM PAGINAÇÃO (CORRIGIDO)
 app.get('/dados', async (req, res) => {
-
     try {
-        const dados = await Dados.find();
-        return res.status(200).json(dados)
 
+        const pagina = parseInt(req.query.pagina) || 1;
+        const itensPorPagina = 20;
+
+        const dados = await Dados.find()
+            .sort({ _id: -1 }) // mais recentes primeiro
+            .skip((pagina - 1) * itensPorPagina)
+            .limit(itensPorPagina);
+
+        return res.status(200).json(dados);
 
     } catch (error) {
         return res.sendStatus(500);
-
     }
+});
 
-})
 
 app.listen(port, '0.0.0.0', () => {
-    console.log(`servidor rodando na porta ${port}`)
-
-})
+    console.log(`servidor rodando na porta ${port}`);
+});

@@ -53,9 +53,9 @@ document.addEventListener("DOMContentLoaded", () => {
     let meuGrafico;
     const numpaginas = document.getElementById('num');
 
-    async function lerDados() {
+    async function lerDados(pagina) {
         try {
-            const resposta = await fetch('/dados');
+            const resposta = await fetch(`/dados?pagina=${pagina}`);
             return await resposta.json();
         } catch (error) {
             console.error("Erro ao ler dados:", error);
@@ -64,20 +64,16 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     async function criarGrafico(pagina) {
-        const data = await lerDados();
+
+        const dadosPorPagina = await lerDados(pagina);
         numpaginas.innerText = pagina;
 
         if (meuGrafico) {
             meuGrafico.destroy();
         }
 
-        const itensPorPagina = 20;
-        const startIndex = (pagina - 1) * itensPorPagina;
-        const endIndex = startIndex + itensPorPagina;
-        const dadosPorPagina = data.slice(startIndex, endIndex);
-
         const timestamps = dadosPorPagina.map(item => {
-            const date = new Date(item.timestamp);
+            const date = new Date(item.timestamp || item.createdAt);
             return date.toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
         });
 
