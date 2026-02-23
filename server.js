@@ -28,7 +28,6 @@ app.post('/dados', async (req, res) => {
         const { luminosidade } = req.body;
 
         const novoDado = new Dados({ luminosidade });
-
         await novoDado.save();
 
         return res.status(201).send({
@@ -45,15 +44,14 @@ app.post('/dados', async (req, res) => {
 });
 
 
-
+// LISTAR DADOS PAGINADOS (10 por página)
 app.get('/dados', async (req, res) => {
     try {
-
         const pagina = parseInt(req.query.pagina) || 1;
-        const itensPorPagina = 20;
+        const itensPorPagina = 10;
 
         const dados = await Dados.find()
-            .sort({ _id: -1 }) // mais recentes primeiro
+            .sort({ _id: -1 })
             .skip((pagina - 1) * itensPorPagina)
             .limit(itensPorPagina);
 
@@ -65,6 +63,17 @@ app.get('/dados', async (req, res) => {
 });
 
 
+// BUSCAR ÚLTIMO VALOR (GLOBAL)
+app.get('/dados/ultimo', async (req, res) => {
+    try {
+        const ultimo = await Dados.findOne().sort({ _id: -1 });
+        return res.status(200).json(ultimo);
+    } catch (error) {
+        return res.sendStatus(500);
+    }
+});
+
+
 app.listen(port, '0.0.0.0', () => {
-    console.log(`servidor rodando na porta ${port}`);
+    console.log(`Servidor rodando na porta ${port}`);
 });

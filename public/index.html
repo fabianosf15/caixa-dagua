@@ -53,11 +53,6 @@
             border-radius: 6px;
             width: 90px;
             cursor: pointer;
-            transition: 0.2s;
-        }
-
-        .buttons button:hover {
-            background-color: #1d4ed8;
         }
 
         .buttons p {
@@ -68,18 +63,18 @@
 
 <body>
 
-    <h1>Monitor de Luminosidade</h1>
-    <div class="valor-atual" id="valorAtual">-- lx</div>
+<h1>Monitor de Luminosidade</h1>
+<div class="valor-atual" id="valorAtual">-- lx</div>
 
-    <div class="conteiner">
-        <canvas id="grafico" width="700" height="350"></canvas>
+<div class="conteiner">
+    <canvas id="grafico" width="700" height="350"></canvas>
 
-        <div class="buttons">
-            <button id="anterior">Anterior</button>
-            <p id="num"></p>
-            <button id="proximo">Próximo</button>
-        </div>
+    <div class="buttons">
+        <button id="anterior">Anterior</button>
+        <p id="num"></p>
+        <button id="proximo">Próximo</button>
     </div>
+</div>
 
 <script>
 document.addEventListener("DOMContentLoaded", () => {
@@ -96,6 +91,19 @@ document.addEventListener("DOMContentLoaded", () => {
         } catch (error) {
             console.error("Erro ao ler dados:", error);
             return [];
+        }
+    }
+
+    async function atualizarValorAtual() {
+        try {
+            const resposta = await fetch('/dados/ultimo');
+            const dado = await resposta.json();
+
+            if (dado && dado.luminosidade !== undefined) {
+                valorAtual.innerText = dado.luminosidade + " lx";
+            }
+        } catch (error) {
+            console.error("Erro ao buscar último valor:", error);
         }
     }
 
@@ -117,9 +125,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
         const luminosidade = dadosPorPagina.map(item => item.luminosidade);
 
-        // Mostra valor mais recente
-        valorAtual.innerText = luminosidade[0] + " lx";
-
         const min = Math.min(...luminosidade);
         const max = Math.max(...luminosidade);
 
@@ -134,44 +139,25 @@ document.addEventListener("DOMContentLoaded", () => {
                     borderColor: '#38bdf8',
                     borderWidth: 3,
                     tension: 0.35,
-                    pointRadius: 3,
-                    pointHoverRadius: 6,
                     fill: false
                 }]
             },
             options: {
                 responsive: true,
-                interaction: {
-                    mode: 'index',
-                    intersect: false
-                },
                 plugins: {
-                    legend: {
-                        display: false
-                    }
+                    legend: { display: false }
                 },
                 scales: {
                     x: {
-                        ticks: {
-                            color: 'white'
-                        },
-                        grid: {
-                            color: 'rgba(255,255,255,0.05)'
-                        }
+                        ticks: { color: 'white' },
+                        grid: { color: 'rgba(255,255,255,0.05)' }
                     },
                     y: {
-                        ticks: {
-                            color: 'white'
-                        },
-                        grid: {
-                            color: 'rgba(255,255,255,0.05)'
-                        },
+                        ticks: { color: 'white' },
+                        grid: { color: 'rgba(255,255,255,0.05)' },
                         suggestedMin: min - 20,
                         suggestedMax: max + 20
                     }
-                },
-                animation: {
-                    duration: 600
                 }
             }
         });
@@ -190,6 +176,8 @@ document.addEventListener("DOMContentLoaded", () => {
     };
 
     criarGrafico(1);
+    atualizarValorAtual();
+    setInterval(atualizarValorAtual, 10000);
 
 });
 </script>
