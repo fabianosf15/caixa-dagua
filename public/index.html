@@ -145,7 +145,7 @@ document.addEventListener("DOMContentLoaded", () => {
         }
 
         const timestamps = dadosPorPagina.map(item => {
-            const date = new Date(item.createdAt);
+            const date = new Date(item.createdAt || item.timestamp);
             return date.toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
         });
 
