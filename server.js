@@ -44,7 +44,8 @@ app.post('/dados', async (req, res) => {
 });
 
 
-// LISTAR DADOS (com filtro por dia + paginação 10)
+// LISTAR DADOS (filtro por dia + paginação 10)
+// ACEITA createdAt (novo) E timestamp (antigo)
 app.get('/dados', async (req, res) => {
     try {
 
@@ -55,14 +56,15 @@ app.get('/dados', async (req, res) => {
         let filtro = {};
 
         if (data) {
+
             const inicio = new Date(data + "T00:00:00");
             const fim = new Date(data + "T23:59:59");
 
             filtro = {
-                createdAt: {
-                    $gte: inicio,
-                    $lte: fim
-                }
+                $or: [
+                    { createdAt: { $gte: inicio, $lte: fim } },
+                    { timestamp: { $gte: inicio, $lte: fim } }
+                ]
             };
         }
 
@@ -74,16 +76,20 @@ app.get('/dados', async (req, res) => {
         return res.status(200).json(dados);
 
     } catch (error) {
+        console.error(error);
         return res.sendStatus(500);
     }
 });
 
 
-// ÚLTIMO VALOR GLOBAL
+// ÚLTIMO VALOR GLOBAL (compatível com ambos)
 app.get('/dados/ultimo', async (req, res) => {
     try {
+
         const ultimo = await Dados.findOne().sort({ _id: -1 });
+
         return res.status(200).json(ultimo);
+
     } catch (error) {
         return res.sendStatus(500);
     }
