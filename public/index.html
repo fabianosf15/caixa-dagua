@@ -1,68 +1,20 @@
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Monitor de Luminosidade</title>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Monitor de Luminosidade</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-    <style>
-        body {
-            background-color: #0f172a;
-            color: white;
-            font-family: Arial, Helvetica, sans-serif;
-            text-align: center;
-        }
-
-        h1 {
-            margin-top: 20px;
-        }
-
-        .valor-atual {
-            font-size: 2.5em;
-            margin: 10px 0 20px 0;
-            color: #38bdf8;
-        }
-
-        .conteiner {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
-
-        canvas {
-            background-color: #1e293b;
-            padding: 15px;
-            border-radius: 12px;
-        }
-
-        .buttons {
-            display: flex;
-            align-items: center;
-            width: 220px;
-            justify-content: space-around;
-            gap: 10px;
-            margin-top: 20px;
-        }
-
-        .buttons button {
-            background-color: #2563eb;
-            color: white;
-            padding: 8px;
-            border: none;
-            border-radius: 6px;
-            width: 90px;
-            cursor: pointer;
-        }
-
-        .buttons p {
-            font-size: 1.3em;
-        }
-
-        .filtro-data {
-            margin-bottom: 15px;
-        }
-    </style>
+<style>
+body { background:#0f172a; color:white; font-family:Arial; text-align:center; }
+.valor-atual { font-size:2.5em; color:#38bdf8; }
+canvas { background:#1e293b; padding:15px; border-radius:12px; }
+.buttons { display:flex; justify-content:center; gap:15px; margin-top:20px; }
+button { background:#2563eb; color:white; padding:8px; border:none; border-radius:6px; cursor:pointer; }
+.filtro { margin:15px; }
+.mensagem { margin-top:15px; color:orange; font-weight:bold; }
+</style>
 </head>
 
 <body>
@@ -70,140 +22,123 @@
 <h1>Monitor de Luminosidade</h1>
 <div class="valor-atual" id="valorAtual">-- lx</div>
 
-<div class="filtro-data">
+<div class="filtro">
     <input type="date" id="seletorData">
+    <input type="time" id="horaInicio">
+    <input type="time" id="horaFim">
 </div>
 
-<div class="conteiner">
-    <canvas id="grafico" width="700" height="350"></canvas>
+<div id="mensagem" class="mensagem"></div>
 
-    <div class="buttons">
-        <button id="anterior">Anterior</button>
-        <p id="num"></p>
-        <button id="proximo">Próximo</button>
-    </div>
+<canvas id="grafico" width="700" height="350"></canvas>
+
+<div class="buttons">
+    <button id="anterior">Anterior</button>
+    <span id="num"></span>
+    <button id="proximo">Próximo</button>
 </div>
 
 <script>
 document.addEventListener("DOMContentLoaded", () => {
 
-    let paginaAtual = 1;
-    let meuGrafico;
-    let dataSelecionada = "";
+let paginaAtual = 1;
+let meuGrafico;
+let dataSelecionada = "";
+let horaInicio = "";
+let horaFim = "";
 
-    const numpaginas = document.getElementById('num');
-    const valorAtual = document.getElementById('valorAtual');
-    const seletorData = document.getElementById('seletorData');
+const numpaginas = document.getElementById('num');
+const valorAtual = document.getElementById('valorAtual');
+const mensagem = document.getElementById('mensagem');
 
-    seletorData.addEventListener("change", () => {
-        dataSelecionada = seletorData.value;
-        paginaAtual = 1;
-        criarGrafico(paginaAtual);
+document.getElementById('seletorData').onchange = e => {
+    dataSelecionada = e.target.value;
+    paginaAtual = 1;
+    criarGrafico();
+};
+
+document.getElementById('horaInicio').onchange = e => {
+    horaInicio = e.target.value;
+    paginaAtual = 1;
+    criarGrafico();
+};
+
+document.getElementById('horaFim').onchange = e => {
+    horaFim = e.target.value;
+    paginaAtual = 1;
+    criarGrafico();
+};
+
+async function lerDados() {
+
+    let url = `/dados?pagina=${paginaAtual}`;
+
+    if (dataSelecionada) url += `&data=${dataSelecionada}`;
+    if (horaInicio) url += `&horaInicio=${horaInicio}`;
+    if (horaFim) url += `&horaFim=${horaFim}`;
+
+    const resposta = await fetch(url);
+    return await resposta.json();
+}
+
+async function atualizarValorAtual() {
+    const resposta = await fetch('/dados/ultimo');
+    const dado = await resposta.json();
+    if (dado && dado.luminosidade !== undefined) {
+        valorAtual.innerText = dado.luminosidade + " lx";
+    }
+}
+
+async function criarGrafico() {
+
+    const dados = await lerDados();
+    numpaginas.innerText = paginaAtual;
+    mensagem.innerText = "";
+
+    if (dados.mensagem) {
+        if (meuGrafico) meuGrafico.destroy();
+        mensagem.innerText = dados.mensagem;
+        return;
+    }
+
+    if (!dados.length) {
+        if (meuGrafico) meuGrafico.destroy();
+        return;
+    }
+
+    if (meuGrafico) meuGrafico.destroy();
+
+    const labels = dados.map(item => {
+        const d = new Date(item.createdAt || item.timestamp);
+        return d.toLocaleString('pt-BR');
     });
 
-    async function lerDados(pagina) {
-        try {
-            let url = `/dados?pagina=${pagina}`;
+    const valores = dados.map(item => item.luminosidade);
 
-            if (dataSelecionada) {
-                url += `&data=${dataSelecionada}`;
-            }
+    const ctx = document.getElementById('grafico').getContext('2d');
 
-            const resposta = await fetch(url);
-            return await resposta.json();
-        } catch (error) {
-            console.error("Erro ao ler dados:", error);
-            return [];
-        }
+    meuGrafico = new Chart(ctx, {
+        type:'line',
+        data:{ labels, datasets:[{ data:valores, borderColor:'#38bdf8', tension:0.3 }] },
+        options:{ plugins:{ legend:{ display:false } } }
+    });
+}
+
+document.getElementById("anterior").onclick = () => {
+    if (paginaAtual > 1) {
+        paginaAtual--;
+        criarGrafico();
     }
+};
 
-    async function atualizarValorAtual() {
-        try {
-            const resposta = await fetch('/dados/ultimo');
-            const dado = await resposta.json();
+document.getElementById("proximo").onclick = () => {
+    paginaAtual++;
+    criarGrafico();
+};
 
-            if (dado && dado.luminosidade !== undefined) {
-                valorAtual.innerText = dado.luminosidade + " lx";
-            }
-        } catch (error) {
-            console.error("Erro ao buscar último valor:", error);
-        }
-    }
-
-    async function criarGrafico(pagina) {
-
-        const dadosPorPagina = await lerDados(pagina);
-        numpaginas.innerText = pagina;
-
-        if (!dadosPorPagina.length) {
-            if (meuGrafico) meuGrafico.destroy();
-            return;
-        }
-
-        if (meuGrafico) {
-            meuGrafico.destroy();
-        }
-
-        const timestamps = dadosPorPagina.map(item => {
-            const date = new Date(item.createdAt || item.timestamp);
-            return date.toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
-        });
-
-        const luminosidade = dadosPorPagina.map(item => item.luminosidade);
-
-        const min = Math.min(...luminosidade);
-        const max = Math.max(...luminosidade);
-
-        const ctx = document.getElementById('grafico').getContext('2d');
-
-        meuGrafico = new Chart(ctx, {
-            type: 'line',
-            data: {
-                labels: timestamps,
-                datasets: [{
-                    data: luminosidade,
-                    borderColor: '#38bdf8',
-                    borderWidth: 3,
-                    tension: 0.35,
-                    fill: false
-                }]
-            },
-            options: {
-                responsive: true,
-                plugins: {
-                    legend: { display: false }
-                },
-                scales: {
-                    x: {
-                        ticks: { color: 'white' },
-                        grid: { color: 'rgba(255,255,255,0.05)' }
-                    },
-                    y: {
-                        ticks: { color: 'white' },
-                        grid: { color: 'rgba(255,255,255,0.05)' },
-                        suggestedMin: min - 20,
-                        suggestedMax: max + 20
-                    }
-                }
-            }
-        });
-    }
-
-    document.getElementById("anterior").onclick = () => {
-        if (paginaAtual > 1) {
-            paginaAtual--;
-            criarGrafico(paginaAtual);
-        }
-    };
-
-    document.getElementById("proximo").onclick = () => {
-        paginaAtual++;
-        criarGrafico(paginaAtual);
-    };
-
-    criarGrafico(1);
-    atualizarValorAtual();
-    setInterval(atualizarValorAtual, 10000);
+criarGrafico();
+atualizarValorAtual();
+setInterval(atualizarValorAtual, 10000);
 
 });
 </script>

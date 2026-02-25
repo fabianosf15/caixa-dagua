@@ -14,12 +14,8 @@ app.use(express.static('public'));
 const bdURL = process.env.MONGO_URL;
 
 mongoose.connect(bdURL)
-    .then(() => {
-        console.log('Conectado ao banco MongoDB');
-    })
-    .catch((error) => {
-        console.error(error);
-    });
+    .then(() => console.log('Conectado ao banco MongoDB'))
+    .catch((error) => console.error(error));
 
 
 // SALVAR DADOS
@@ -30,13 +26,13 @@ app.post('/dados', async (req, res) => {
         const novoDado = new Dados({ luminosidade });
         await novoDado.save();
 
-        return res.status(201).send({
+        return res.status(201).json({
             message: "dados salvos",
-            luminosidade: luminosidade
+            luminosidade
         });
 
     } catch (error) {
-        return res.status(500).send({
+        return res.status(500).json({
             message: "erro ao salvar",
             erro: error.message
         });
@@ -44,21 +40,35 @@ app.post('/dados', async (req, res) => {
 });
 
 
-// LISTAR DADOS (filtro por dia + paginação 10)
-// ACEITA createdAt (novo) E timestamp (antigo)
+// LISTAR DADOS (dia + hora + paginação)
 app.get('/dados', async (req, res) => {
     try {
 
         const pagina = parseInt(req.query.pagina) || 1;
         const data = req.query.data;
+        const horaInicio = req.query.horaInicio;
+        const horaFim = req.query.horaFim;
         const itensPorPagina = 10;
 
         let filtro = {};
 
         if (data) {
 
-            const inicio = new Date(data + "T00:00:00");
-            const fim = new Date(data + "T23:59:59");
+            const inicio = new Date(data);
+            const fim = new Date(data);
+
+            inicio.setHours(0, 0, 0, 0);
+            fim.setHours(23, 59, 59, 999);
+
+            if (horaInicio) {
+                const [h, m] = horaInicio.split(":");
+                inicio.setHours(parseInt(h), parseInt(m), 0, 0);
+            }
+
+            if (horaFim) {
+                const [h, m] = horaFim.split(":");
+                fim.setHours(parseInt(h), parseInt(m), 59, 999);
+            }
 
             filtro = {
                 $or: [
@@ -73,6 +83,19 @@ app.get('/dados', async (req, res) => {
             .skip((pagina - 1) * itensPorPagina)
             .limit(itensPorPagina);
 
+        // Se não encontrou nada, verifica primeira data existente
+        if (dados.length === 0 && data) {
+
+            const primeiroRegistro = await Dados.findOne().sort({ _id: 1 });
+
+            if (primeiroRegistro) {
+                const primeiraData = new Date(primeiroRegistro.createdAt || primeiroRegistro.timestamp);
+                return res.status(200).json({
+                    mensagem: `Registros a partir do dia ${primeiraData.toLocaleDateString('pt-BR')}`
+                });
+            }
+        }
+
         return res.status(200).json(dados);
 
     } catch (error) {
@@ -82,15 +105,12 @@ app.get('/dados', async (req, res) => {
 });
 
 
-// ÚLTIMO VALOR GLOBAL (compatível com ambos)
+// ÚLTIMO VALOR
 app.get('/dados/ultimo', async (req, res) => {
     try {
-
         const ultimo = await Dados.findOne().sort({ _id: -1 });
-
         return res.status(200).json(ultimo);
-
-    } catch (error) {
+    } catch {
         return res.sendStatus(500);
     }
 });
