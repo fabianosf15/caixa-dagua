@@ -44,13 +44,29 @@ app.post('/dados', async (req, res) => {
 });
 
 
-// LISTAR DADOS PAGINADOS (10 por página)
+// LISTAR DADOS (com filtro por dia + paginação 10)
 app.get('/dados', async (req, res) => {
     try {
+
         const pagina = parseInt(req.query.pagina) || 1;
+        const data = req.query.data;
         const itensPorPagina = 10;
 
-        const dados = await Dados.find()
+        let filtro = {};
+
+        if (data) {
+            const inicio = new Date(data + "T00:00:00");
+            const fim = new Date(data + "T23:59:59");
+
+            filtro = {
+                createdAt: {
+                    $gte: inicio,
+                    $lte: fim
+                }
+            };
+        }
+
+        const dados = await Dados.find(filtro)
             .sort({ _id: -1 })
             .skip((pagina - 1) * itensPorPagina)
             .limit(itensPorPagina);
@@ -63,7 +79,7 @@ app.get('/dados', async (req, res) => {
 });
 
 
-// BUSCAR ÚLTIMO VALOR (GLOBAL)
+// ÚLTIMO VALOR GLOBAL
 app.get('/dados/ultimo', async (req, res) => {
     try {
         const ultimo = await Dados.findOne().sort({ _id: -1 });

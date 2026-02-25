@@ -1,8 +1,12 @@
 const mongoose = require('mongoose');
 
 const dadosSchema = new mongoose.Schema({
-    luminosidade: Number,
-    timestamp: { type: Date, default: Date.now }
+    luminosidade: {
+        type: Number,
+        required: true
+    }
+}, {
+    timestamps: true
 });
 
 const Dados = mongoose.model('Dados', dadosSchema);

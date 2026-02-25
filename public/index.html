@@ -58,6 +58,10 @@
         .buttons p {
             font-size: 1.3em;
         }
+
+        .filtro-data {
+            margin-bottom: 15px;
+        }
     </style>
 </head>
 
@@ -65,6 +69,10 @@
 
 <h1>Monitor de Luminosidade</h1>
 <div class="valor-atual" id="valorAtual">-- lx</div>
+
+<div class="filtro-data">
+    <input type="date" id="seletorData">
+</div>
 
 <div class="conteiner">
     <canvas id="grafico" width="700" height="350"></canvas>
@@ -81,12 +89,27 @@ document.addEventListener("DOMContentLoaded", () => {
 
     let paginaAtual = 1;
     let meuGrafico;
+    let dataSelecionada = "";
+
     const numpaginas = document.getElementById('num');
     const valorAtual = document.getElementById('valorAtual');
+    const seletorData = document.getElementById('seletorData');
+
+    seletorData.addEventListener("change", () => {
+        dataSelecionada = seletorData.value;
+        paginaAtual = 1;
+        criarGrafico(paginaAtual);
+    });
 
     async function lerDados(pagina) {
         try {
-            const resposta = await fetch(`/dados?pagina=${pagina}`);
+            let url = `/dados?pagina=${pagina}`;
+
+            if (dataSelecionada) {
+                url += `&data=${dataSelecionada}`;
+            }
+
+            const resposta = await fetch(url);
             return await resposta.json();
         } catch (error) {
             console.error("Erro ao ler dados:", error);
@@ -112,14 +135,17 @@ document.addEventListener("DOMContentLoaded", () => {
         const dadosPorPagina = await lerDados(pagina);
         numpaginas.innerText = pagina;
 
-        if (!dadosPorPagina.length) return;
+        if (!dadosPorPagina.length) {
+            if (meuGrafico) meuGrafico.destroy();
+            return;
+        }
 
         if (meuGrafico) {
             meuGrafico.destroy();
         }
 
         const timestamps = dadosPorPagina.map(item => {
-            const date = new Date(item.timestamp || item.createdAt);
+            const date = new Date(item.createdAt);
             return date.toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
         });
 
