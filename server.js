@@ -34,29 +34,17 @@ app.get('/dados', async (req, res) => {
   try {
     const pagina = parseInt(req.query.pagina) || 1;
     const data = req.query.data;
-    const horaInicio = req.query.horaInicio;
-    const horaFim = req.query.horaFim;
 
-    const itensPorPagina = 20; // ALTERADO PARA 20
+    const itensPorPagina = 20;
 
     let filtro = {};
 
     if (data) {
-      const inicio = new Date(data);
-      const fim = new Date(data);
+      // CORREÇÃO DO FUSO HORÁRIO (DATA LOCAL)
+      const [ano, mes, dia] = data.split('-');
 
-      inicio.setHours(0, 0, 0, 0);
-      fim.setHours(23, 59, 59, 999);
-
-      if (horaInicio) {
-        const [h, m] = horaInicio.split(":");
-        inicio.setHours(parseInt(h), parseInt(m), 0, 0);
-      }
-
-      if (horaFim) {
-        const [h, m] = horaFim.split(":");
-        fim.setHours(parseInt(h), parseInt(m), 59, 999);
-      }
+      const inicio = new Date(ano, mes - 1, dia, 0, 0, 0, 0);
+      const fim = new Date(ano, mes - 1, dia, 23, 59, 59, 999);
 
       filtro = {
         $or: [
@@ -71,14 +59,11 @@ app.get('/dados', async (req, res) => {
       .skip((pagina - 1) * itensPorPagina)
       .limit(itensPorPagina);
 
+    // NOVA MENSAGEM SIMPLES
     if (dados.length === 0 && data) {
-      const primeiroRegistro = await Dados.findOne().sort({ _id: 1 });
-      if (primeiroRegistro) {
-        const primeiraData = new Date(primeiroRegistro.createdAt || primeiroRegistro.timestamp);
-        return res.status(200).json({
-          mensagem: `Registros a partir do dia ${primeiraData.toLocaleDateString('pt-BR')}`
-        });
-      }
+      return res.status(200).json({
+        mensagem: "Não há registros para este dia"
+      });
     }
 
     return res.status(200).json(dados);

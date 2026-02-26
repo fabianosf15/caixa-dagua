@@ -62,6 +62,12 @@ canvas {
 .filtro-data {
   margin-bottom: 15px;
 }
+
+.mensagem {
+  margin-top: 15px;
+  font-size: 1.2em;
+  color: #f87171;
+}
 </style>
 </head>
 
@@ -76,14 +82,18 @@ canvas {
 </div>
 
 <div class="conteiner">
-  <!-- ALTURA ALTERADA PARA 280 -->
+
   <canvas id="grafico" width="700" height="280"></canvas>
+
+  <!-- MENSAGEM DE AVISO -->
+  <div id="mensagem" class="mensagem"></div>
 
   <div class="buttons">
     <button id="anterior">Anterior</button>
     <p id="num"></p>
     <button id="proximo">Próximo</button>
   </div>
+
 </div>
 
 <script>
@@ -96,6 +106,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const numpaginas = document.getElementById('num');
   const valorAtual = document.getElementById('valorAtual');
   const seletorData = document.getElementById('seletorData');
+  const mensagem = document.getElementById('mensagem');
 
   seletorData.addEventListener("change", () => {
     dataSelecionada = seletorData.value;
@@ -133,6 +144,15 @@ document.addEventListener("DOMContentLoaded", () => {
   async function criarGrafico(pagina) {
     const dadosPorPagina = await lerDados(pagina);
     numpaginas.innerText = pagina;
+
+    // SE API RETORNAR MENSAGEM
+    if (dadosPorPagina.mensagem) {
+      mensagem.innerText = dadosPorPagina.mensagem;
+      if (meuGrafico) meuGrafico.destroy();
+      return;
+    }
+
+    mensagem.innerText = "";
 
     if (!dadosPorPagina.length) {
       if (meuGrafico) meuGrafico.destroy();
