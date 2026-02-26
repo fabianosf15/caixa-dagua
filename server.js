@@ -17,6 +17,7 @@ mongoose.connect(bdURL)
   .then(() => console.log('Conectado ao banco MongoDB'))
   .catch((error) => console.error(error));
 
+
 // SALVAR DADOS
 app.post('/dados', async (req, res) => {
   try {
@@ -29,27 +30,31 @@ app.post('/dados', async (req, res) => {
   }
 });
 
+
 // LISTAR DADOS (20 POR PÁGINA)
 app.get('/dados', async (req, res) => {
   try {
     const pagina = parseInt(req.query.pagina) || 1;
     const data = req.query.data;
-
     const itensPorPagina = 20;
 
     let filtro = {};
 
     if (data) {
-      // CORREÇÃO DO FUSO HORÁRIO (DATA LOCAL)
-      const [ano, mes, dia] = data.split('-');
+      const [ano, mes, dia] = data.split('-').map(Number);
 
-      const inicio = new Date(ano, mes - 1, dia, 0, 0, 0, 0);
-      const fim = new Date(ano, mes - 1, dia, 23, 59, 59, 999);
+      // cria horário LOCAL correto
+      const inicioLocal = new Date(ano, mes - 1, dia, 0, 0, 0, 0);
+      const fimLocal = new Date(ano, mes - 1, dia, 23, 59, 59, 999);
+
+      // converte corretamente para UTC (Mongo salva em UTC)
+      const inicioUTC = new Date(inicioLocal.getTime() - inicioLocal.getTimezoneOffset() * 60000);
+      const fimUTC = new Date(fimLocal.getTime() - fimLocal.getTimezoneOffset() * 60000);
 
       filtro = {
         $or: [
-          { createdAt: { $gte: inicio, $lte: fim } },
-          { timestamp: { $gte: inicio, $lte: fim } }
+          { createdAt: { $gte: inicioUTC, $lte: fimUTC } },
+          { timestamp: { $gte: inicioUTC, $lte: fimUTC } }
         ]
       };
     }
@@ -59,7 +64,6 @@ app.get('/dados', async (req, res) => {
       .skip((pagina - 1) * itensPorPagina)
       .limit(itensPorPagina);
 
-    // NOVA MENSAGEM SIMPLES
     if (dados.length === 0 && data) {
       return res.status(200).json({
         mensagem: "Não há registros para este dia"
@@ -73,6 +77,7 @@ app.get('/dados', async (req, res) => {
     return res.sendStatus(500);
   }
 });
+
 
 // ÚLTIMO VALOR
 app.get('/dados/ultimo', async (req, res) => {
