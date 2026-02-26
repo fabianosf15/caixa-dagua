@@ -43,18 +43,19 @@ app.get('/dados', async (req, res) => {
     if (data) {
       const [ano, mes, dia] = data.split('-').map(Number);
 
-      // cria horário LOCAL correto
-      const inicioLocal = new Date(ano, mes - 1, dia, 0, 0, 0, 0);
-      const fimLocal = new Date(ano, mes - 1, dia, 23, 59, 59, 999);
+      /*
+        Brasil = UTC-3
+        00:00 Brasil = 03:00 UTC
+        23:59 Brasil = 02:59 UTC do dia seguinte
+      */
 
-      // converte corretamente para UTC (Mongo salva em UTC)
-      const inicioUTC = new Date(inicioLocal.getTime() - inicioLocal.getTimezoneOffset() * 60000);
-      const fimUTC = new Date(fimLocal.getTime() - fimLocal.getTimezoneOffset() * 60000);
+      const inicio = new Date(Date.UTC(ano, mes - 1, dia, 3, 0, 0, 0));
+      const fim = new Date(Date.UTC(ano, mes - 1, dia + 1, 2, 59, 59, 999));
 
       filtro = {
         $or: [
-          { createdAt: { $gte: inicioUTC, $lte: fimUTC } },
-          { timestamp: { $gte: inicioUTC, $lte: fimUTC } }
+          { createdAt: { $gte: inicio, $lte: fim } },
+          { timestamp: { $gte: inicio, $lte: fim } }
         ]
       };
     }
