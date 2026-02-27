@@ -29,7 +29,7 @@ app.post('/dados', async (req, res) => {
 });
 
 
-// LISTAR DADOS COM FILTRO DE DATA E HORA
+// LISTAR DADOS COM FILTRO CORRETO DE DATA E HORA
 app.get('/dados', async (req, res) => {
   try {
     const pagina = parseInt(req.query.pagina) || 1;
@@ -39,27 +39,26 @@ app.get('/dados', async (req, res) => {
     let filtro = {};
 
     if (data) {
-      const [ano, mes, dia] = data.split('-').map(Number);
-
-      let horaIni = 0;
-      let minIni = 0;
-      let horaF = 23;
-      let minF = 59;
+      let inicio;
+      let fim;
 
       if (horaInicio) {
-        [horaIni, minIni] = horaInicio.split(':').map(Number);
+        inicio = new Date(`${data}T${horaInicio}:00`);
+      } else {
+        inicio = new Date(`${data}T00:00:00`);
       }
 
       if (horaFim) {
-        [horaF, minF] = horaFim.split(':').map(Number);
+        fim = new Date(`${data}T${horaFim}:59`);
+      } else {
+        fim = new Date(`${data}T23:59:59`);
       }
 
-      // CRIA DATA LOCAL (SEM UTC MANUAL)
-      const inicio = new Date(ano, mes - 1, dia, horaIni, minIni, 0, 0);
-      const fim = new Date(ano, mes - 1, dia, horaF, minF, 59, 999);
-
       filtro = {
-        createdAt: { $gte: inicio, $lte: fim }
+        createdAt: {
+          $gte: inicio,
+          $lte: fim
+        }
       };
     }
 
