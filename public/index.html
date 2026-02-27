@@ -189,7 +189,29 @@ document.addEventListener("DOMContentLoaded", () => {
       },
       options: {
         responsive: true,
-        plugins: { legend: { display: false } }
+        plugins: {
+          legend: { display: false }
+        },
+        scales: {
+          x: {
+            ticks: {
+              color: '#f1f5f9',
+              font: { size: 12 }
+            },
+            grid: {
+              color: 'rgba(255,255,255,0.1)'
+            }
+          },
+          y: {
+            ticks: {
+              color: '#f1f5f9',
+              font: { size: 12 }
+            },
+            grid: {
+              color: 'rgba(255,255,255,0.1)'
+            }
+          }
+        }
       }
     });
   }
