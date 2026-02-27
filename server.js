@@ -11,31 +11,25 @@ app.use(cors());
 app.use(bodyParser.json());
 app.use(express.static('public'));
 
-const bdURL = process.env.MONGO_URL;
+mongoose.connect(process.env.MONGO_URL)
+  .then(() => console.log('Conectado ao MongoDB'))
+  .catch(err => console.error(err));
 
-mongoose.connect(bdURL)
-  .then(() => console.log('Conectado ao banco MongoDB'))
-  .catch((error) => console.error(error));
-
-
-// SALVAR DADOS
 app.post('/dados', async (req, res) => {
   try {
     const { luminosidade } = req.body;
-    const novoDado = new Dados({ luminosidade });
-    await novoDado.save();
-    return res.status(201).json({ message: "dados salvos", luminosidade });
-  } catch (error) {
-    return res.status(500).json({ message: "erro ao salvar", erro: error.message });
+    const novo = new Dados({ luminosidade });
+    await novo.save();
+    res.status(201).json({ message: "dados salvos" });
+  } catch (err) {
+    res.status(500).json({ erro: err.message });
   }
 });
 
-
-// LISTAR DADOS (20 POR PÁGINA)
 app.get('/dados', async (req, res) => {
   try {
     const pagina = parseInt(req.query.pagina) || 1;
-    const data = req.query.data;
+    const { data, horaInicio, horaFim } = req.query;
     const itensPorPagina = 20;
 
     let filtro = {};
@@ -43,20 +37,25 @@ app.get('/dados', async (req, res) => {
     if (data) {
       const [ano, mes, dia] = data.split('-').map(Number);
 
-      /*
-        Brasil = UTC-3
-        00:00 Brasil = 03:00 UTC
-        23:59 Brasil = 02:59 UTC do dia seguinte
-      */
+      let horaIni = 0;
+      let minIni = 0;
+      let horaF = 23;
+      let minF = 59;
 
-      const inicio = new Date(Date.UTC(ano, mes - 1, dia, 3, 0, 0, 0));
-      const fim = new Date(Date.UTC(ano, mes - 1, dia + 1, 2, 59, 59, 999));
+      if (horaInicio) {
+        [horaIni, minIni] = horaInicio.split(':').map(Number);
+      }
+
+      if (horaFim) {
+        [horaF, minF] = horaFim.split(':').map(Number);
+      }
+
+      // Brasil UTC-3 → converter para UTC
+      const inicio = new Date(Date.UTC(ano, mes - 1, dia, horaIni + 3, minIni, 0));
+      const fim = new Date(Date.UTC(ano, mes - 1, dia, horaF + 3, minF, 59));
 
       filtro = {
-        $or: [
-          { createdAt: { $gte: inicio, $lte: fim } },
-          { timestamp: { $gte: inicio, $lte: fim } }
-        ]
+        createdAt: { $gte: inicio, $lte: fim }
       };
     }
 
@@ -66,27 +65,22 @@ app.get('/dados', async (req, res) => {
       .limit(itensPorPagina);
 
     if (dados.length === 0 && data) {
-      return res.status(200).json({
-        mensagem: "Não há registros para este dia"
-      });
+      return res.json({ mensagem: "Não há registros para este período" });
     }
 
-    return res.status(200).json(dados);
+    res.json(dados);
 
-  } catch (error) {
-    console.error(error);
-    return res.sendStatus(500);
+  } catch (err) {
+    res.sendStatus(500);
   }
 });
 
-
-// ÚLTIMO VALOR
 app.get('/dados/ultimo', async (req, res) => {
   try {
     const ultimo = await Dados.findOne().sort({ _id: -1 });
-    return res.status(200).json(ultimo);
+    res.json(ultimo);
   } catch {
-    return res.sendStatus(500);
+    res.sendStatus(500);
   }
 });
 

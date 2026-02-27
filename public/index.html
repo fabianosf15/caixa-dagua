@@ -14,9 +14,7 @@ body {
   text-align: center;
 }
 
-h1 {
-  margin-top: 20px;
-}
+h1 { margin-top: 20px; }
 
 .valor-atual {
   font-size: 2.5em;
@@ -55,12 +53,12 @@ canvas {
   cursor: pointer;
 }
 
-.buttons p {
-  font-size: 1.3em;
-}
-
-.filtro-data {
+.filtros {
   margin-bottom: 15px;
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  flex-wrap: wrap;
 }
 
 .mensagem {
@@ -77,15 +75,14 @@ canvas {
 
 <div class="valor-atual" id="valorAtual">-- lx</div>
 
-<div class="filtro-data">
+<div class="filtros">
   <input type="date" id="seletorData">
+  <input type="time" id="horaInicio">
+  <input type="time" id="horaFim">
 </div>
 
 <div class="conteiner">
-
   <canvas id="grafico" width="700" height="280"></canvas>
-
-  <!-- MENSAGEM DE AVISO -->
   <div id="mensagem" class="mensagem"></div>
 
   <div class="buttons">
@@ -93,7 +90,6 @@ canvas {
     <p id="num"></p>
     <button id="proximo">Próximo</button>
   </div>
-
 </div>
 
 <script>
@@ -101,25 +97,35 @@ document.addEventListener("DOMContentLoaded", () => {
 
   let paginaAtual = 1;
   let meuGrafico;
-  let dataSelecionada = "";
 
   const numpaginas = document.getElementById('num');
   const valorAtual = document.getElementById('valorAtual');
   const seletorData = document.getElementById('seletorData');
+  const horaInicioInput = document.getElementById('horaInicio');
+  const horaFimInput = document.getElementById('horaFim');
   const mensagem = document.getElementById('mensagem');
 
-  seletorData.addEventListener("change", () => {
-    dataSelecionada = seletorData.value;
+  function atualizarGrafico() {
     paginaAtual = 1;
     criarGrafico(paginaAtual);
-  });
+  }
+
+  seletorData.addEventListener("change", atualizarGrafico);
+  horaInicioInput.addEventListener("change", atualizarGrafico);
+  horaFimInput.addEventListener("change", atualizarGrafico);
 
   async function lerDados(pagina) {
     try {
       let url = `/dados?pagina=${pagina}`;
-      if (dataSelecionada) {
-        url += `&data=${dataSelecionada}`;
-      }
+
+      if (seletorData.value)
+        url += `&data=${seletorData.value}`;
+
+      if (horaInicioInput.value)
+        url += `&horaInicio=${horaInicioInput.value}`;
+
+      if (horaFimInput.value)
+        url += `&horaFim=${horaFimInput.value}`;
 
       const resposta = await fetch(url);
       return await resposta.json();
@@ -145,7 +151,6 @@ document.addEventListener("DOMContentLoaded", () => {
     const dadosPorPagina = await lerDados(pagina);
     numpaginas.innerText = pagina;
 
-    // SE API RETORNAR MENSAGEM
     if (dadosPorPagina.mensagem) {
       mensagem.innerText = dadosPorPagina.mensagem;
       if (meuGrafico) meuGrafico.destroy();
@@ -159,22 +164,14 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
-    if (meuGrafico) {
-      meuGrafico.destroy();
-    }
+    if (meuGrafico) meuGrafico.destroy();
 
     const timestamps = dadosPorPagina.map(item => {
       const date = new Date(item.createdAt || item.timestamp);
-      return date.toLocaleString('pt-BR', {
-        dateStyle: 'short',
-        timeStyle: 'short'
-      });
+      return date.toLocaleString('pt-BR');
     });
 
     const luminosidade = dadosPorPagina.map(item => item.luminosidade);
-
-    const min = Math.min(...luminosidade);
-    const max = Math.max(...luminosidade);
 
     const ctx = document.getElementById('grafico').getContext('2d');
 
@@ -192,21 +189,7 @@ document.addEventListener("DOMContentLoaded", () => {
       },
       options: {
         responsive: true,
-        plugins: {
-          legend: { display: false }
-        },
-        scales: {
-          x: {
-            ticks: { color: 'white' },
-            grid: { color: 'rgba(255,255,255,0.05)' }
-          },
-          y: {
-            ticks: { color: 'white' },
-            grid: { color: 'rgba(255,255,255,0.05)' },
-            suggestedMin: min - 20,
-            suggestedMax: max + 20
-          }
-        }
+        plugins: { legend: { display: false } }
       }
     });
   }
