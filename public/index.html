@@ -14,6 +14,8 @@ body {
   text-align: center;
 }
 
+h1 { margin-top: 20px; }
+
 .valor-atual {
   font-size: 2.5em;
   margin: 10px 0 20px 0;
@@ -51,17 +53,18 @@ canvas {
   cursor: pointer;
 }
 
-.buttons button:disabled {
-  background-color: #475569;
-  cursor: not-allowed;
-}
-
 .filtros {
   margin-bottom: 15px;
   display: flex;
   gap: 10px;
   justify-content: center;
   flex-wrap: wrap;
+}
+
+.mensagem {
+  margin-top: 15px;
+  font-size: 1.2em;
+  color: #f87171;
 }
 </style>
 </head>
@@ -80,6 +83,7 @@ canvas {
 
 <div class="conteiner">
   <canvas id="grafico" width="700" height="280"></canvas>
+  <div id="mensagem" class="mensagem"></div>
 
   <div class="buttons">
     <button id="anterior">Anterior</button>
@@ -92,21 +96,14 @@ canvas {
 document.addEventListener("DOMContentLoaded", () => {
 
   let paginaAtual = 1;
-  let totalPaginas = 1;
   let meuGrafico;
 
-  const btnAnterior = document.getElementById("anterior");
-  const btnProximo = document.getElementById("proximo");
   const numpaginas = document.getElementById('num');
   const valorAtual = document.getElementById('valorAtual');
   const seletorData = document.getElementById('seletorData');
   const horaInicioInput = document.getElementById('horaInicio');
   const horaFimInput = document.getElementById('horaFim');
-
-  function atualizarBotoes() {
-    btnAnterior.disabled = paginaAtual <= 1;
-    btnProximo.disabled = paginaAtual >= totalPaginas;
-  }
+  const mensagem = document.getElementById('mensagem');
 
   function atualizarGrafico() {
     paginaAtual = 1;
@@ -118,51 +115,63 @@ document.addEventListener("DOMContentLoaded", () => {
   horaFimInput.addEventListener("change", atualizarGrafico);
 
   async function lerDados(pagina) {
-    let url = `/dados?pagina=${pagina}`;
+    try {
+      let url = `/dados?pagina=${pagina}`;
 
-    if (seletorData.value)
-      url += `&data=${seletorData.value}`;
+      if (seletorData.value)
+        url += `&data=${seletorData.value}`;
 
-    if (horaInicioInput.value)
-      url += `&horaInicio=${horaInicioInput.value}`;
+      if (horaInicioInput.value)
+        url += `&horaInicio=${horaInicioInput.value}`;
 
-    if (horaFimInput.value)
-      url += `&horaFim=${horaFimInput.value}`;
+      if (horaFimInput.value)
+        url += `&horaFim=${horaFimInput.value}`;
 
-    const resposta = await fetch(url);
-    return await resposta.json();
+      const resposta = await fetch(url);
+      return await resposta.json();
+    } catch (error) {
+      console.error("Erro ao ler dados:", error);
+      return [];
+    }
   }
 
   async function atualizarValorAtual() {
-    const resposta = await fetch('/dados/ultimo');
-    const dado = await resposta.json();
-    if (dado && dado.luminosidade !== undefined) {
-      valorAtual.innerText = dado.luminosidade + " lx";
+    try {
+      const resposta = await fetch('/dados/ultimo');
+      const dado = await resposta.json();
+      if (dado && dado.luminosidade !== undefined) {
+        valorAtual.innerText = dado.luminosidade + " lx";
+      }
+    } catch (error) {
+      console.error("Erro ao buscar último valor:", error);
     }
   }
 
   async function criarGrafico(pagina) {
-    const resposta = await lerDados(pagina);
+    const dadosPorPagina = await lerDados(pagina);
+    numpaginas.innerText = pagina;
 
-    const dados = resposta.dados;
-    paginaAtual = resposta.paginaAtual;
-    totalPaginas = resposta.totalPaginas || 1;
+    if (dadosPorPagina.mensagem) {
+      mensagem.innerText = dadosPorPagina.mensagem;
+      if (meuGrafico) meuGrafico.destroy();
+      return;
+    }
 
-    atualizarBotoes();
-    numpaginas.innerText = `${paginaAtual} / ${totalPaginas}`;
+    mensagem.innerText = "";
 
-    if (!dados.length) {
+    if (!dadosPorPagina.length) {
       if (meuGrafico) meuGrafico.destroy();
       return;
     }
 
     if (meuGrafico) meuGrafico.destroy();
 
-    const timestamps = dados.map(item =>
-      new Date(item.createdAt).toLocaleString('pt-BR')
-    );
+    const timestamps = dadosPorPagina.map(item => {
+      const date = new Date(item.createdAt || item.timestamp);
+      return date.toLocaleString('pt-BR');
+    });
 
-    const luminosidade = dados.map(item => item.luminosidade);
+    const luminosidade = dadosPorPagina.map(item => item.luminosidade);
 
     const ctx = document.getElementById('grafico').getContext('2d');
 
@@ -180,21 +189,43 @@ document.addEventListener("DOMContentLoaded", () => {
       },
       options: {
         responsive: true,
-        plugins: { legend: { display: false } }
+        plugins: {
+          legend: { display: false }
+        },
+        scales: {
+          x: {
+            ticks: {
+              color: '#f1f5f9',
+              font: { size: 12 }
+            },
+            grid: {
+              color: 'rgba(255,255,255,0.1)'
+            }
+          },
+          y: {
+            ticks: {
+              color: '#f1f5f9',
+              font: { size: 12 }
+            },
+            grid: {
+              color: 'rgba(255,255,255,0.1)'
+            }
+          }
+        }
       }
     });
   }
 
-  btnAnterior.onclick = () => {
+  document.getElementById("anterior").onclick = () => {
     if (paginaAtual > 1) {
-      criarGrafico(paginaAtual - 1);
+      paginaAtual--;
+      criarGrafico(paginaAtual);
     }
   };
 
-  btnProximo.onclick = () => {
-    if (paginaAtual < totalPaginas) {
-      criarGrafico(paginaAtual + 1);
-    }
+  document.getElementById("proximo").onclick = () => {
+    paginaAtual++;
+    criarGrafico(paginaAtual);
   };
 
   criarGrafico(1);

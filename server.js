@@ -35,42 +35,49 @@ app.get('/dados', async (req, res) => {
     let filtro = {};
 
     if (data) {
-      let inicio = horaInicio
-        ? new Date(`${data}T${horaInicio}:00`)
-        : new Date(`${data}T00:00:00`);
+      const [ano, mes, dia] = data.split('-').map(Number);
 
-      let fim = horaFim
-        ? new Date(`${data}T${horaFim}:59`)
-        : new Date(`${data}T23:59:59`);
+      let horaIni = 0;
+      let minIni = 0;
+      let horaF = 23;
+      let minF = 59;
+
+      if (horaInicio) {
+        [horaIni, minIni] = horaInicio.split(':').map(Number);
+      }
+
+      if (horaFim) {
+        [horaF, minF] = horaFim.split(':').map(Number);
+      }
+
+      // Brasil UTC-3 → converter para UTC
+      const inicio = new Date(Date.UTC(ano, mes - 1, dia, horaIni + 3, minIni, 0));
+      const fim = new Date(Date.UTC(ano, mes - 1, dia, horaF + 3, minF, 59));
 
       filtro = {
         createdAt: { $gte: inicio, $lte: fim }
       };
     }
 
-    const totalRegistros = await Dados.countDocuments(filtro);
-    const totalPaginas = Math.ceil(totalRegistros / itensPorPagina);
-
     const dados = await Dados.find(filtro)
-      .sort({ createdAt: -1 })
+      .sort({ _id: -1 })
       .skip((pagina - 1) * itensPorPagina)
       .limit(itensPorPagina);
 
-    res.json({
-      dados,
-      paginaAtual: pagina,
-      totalPaginas
-    });
+    if (dados.length === 0 && data) {
+      return res.json({ mensagem: "Não há registros para este período" });
+    }
+
+    res.json(dados);
 
   } catch (err) {
-    console.error(err);
     res.sendStatus(500);
   }
 });
 
 app.get('/dados/ultimo', async (req, res) => {
   try {
-    const ultimo = await Dados.findOne().sort({ createdAt: -1 });
+    const ultimo = await Dados.findOne().sort({ _id: -1 });
     res.json(ultimo);
   } catch {
     res.sendStatus(500);
