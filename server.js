@@ -15,6 +15,8 @@ mongoose.connect(process.env.MONGO_URL)
   .then(() => console.log('Conectado ao MongoDB'))
   .catch(err => console.error(err));
 
+
+// SALVAR DADOS
 app.post('/dados', async (req, res) => {
   try {
     const { luminosidade } = req.body;
@@ -26,6 +28,8 @@ app.post('/dados', async (req, res) => {
   }
 });
 
+
+// LISTAR DADOS COM FILTRO DE DATA E HORA
 app.get('/dados', async (req, res) => {
   try {
     const pagina = parseInt(req.query.pagina) || 1;
@@ -50,9 +54,9 @@ app.get('/dados', async (req, res) => {
         [horaF, minF] = horaFim.split(':').map(Number);
       }
 
-      // Brasil UTC-3 → converter para UTC
-      const inicio = new Date(Date.UTC(ano, mes - 1, dia, horaIni + 3, minIni, 0));
-      const fim = new Date(Date.UTC(ano, mes - 1, dia, horaF + 3, minF, 59));
+      // CRIA DATA LOCAL (SEM UTC MANUAL)
+      const inicio = new Date(ano, mes - 1, dia, horaIni, minIni, 0, 0);
+      const fim = new Date(ano, mes - 1, dia, horaF, minF, 59, 999);
 
       filtro = {
         createdAt: { $gte: inicio, $lte: fim }
@@ -60,7 +64,7 @@ app.get('/dados', async (req, res) => {
     }
 
     const dados = await Dados.find(filtro)
-      .sort({ _id: -1 })
+      .sort({ createdAt: -1 })
       .skip((pagina - 1) * itensPorPagina)
       .limit(itensPorPagina);
 
@@ -71,13 +75,16 @@ app.get('/dados', async (req, res) => {
     res.json(dados);
 
   } catch (err) {
+    console.error(err);
     res.sendStatus(500);
   }
 });
 
+
+// ÚLTIMO VALOR
 app.get('/dados/ultimo', async (req, res) => {
   try {
-    const ultimo = await Dados.findOne().sort({ _id: -1 });
+    const ultimo = await Dados.findOne().sort({ createdAt: -1 });
     res.json(ultimo);
   } catch {
     res.sendStatus(500);
