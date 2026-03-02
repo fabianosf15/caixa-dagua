@@ -50,9 +50,9 @@ app.get('/dados', async (req, res) => {
         [horaF, minF] = horaFim.split(':').map(Number);
       }
 
-      // Brasil UTC-3 → converter para UTC
-      const inicio = new Date(Date.UTC(ano, mes - 1, dia, horaIni + 3, minIni, 0));
-      const fim = new Date(Date.UTC(ano, mes - 1, dia, horaF + 3, minF, 59));
+      // SEM conversão manual de UTC
+      const inicio = new Date(ano, mes - 1, dia, horaIni, minIni, 0);
+      const fim = new Date(ano, mes - 1, dia, horaF, minF, 59);
 
       filtro = {
         createdAt: { $gte: inicio, $lte: fim }
@@ -60,7 +60,7 @@ app.get('/dados', async (req, res) => {
     }
 
     const dados = await Dados.find(filtro)
-      .sort({ _id: -1 })
+      .sort({ createdAt: -1 })
       .skip((pagina - 1) * itensPorPagina)
       .limit(itensPorPagina);
 
@@ -77,7 +77,7 @@ app.get('/dados', async (req, res) => {
 
 app.get('/dados/ultimo', async (req, res) => {
   try {
-    const ultimo = await Dados.findOne().sort({ _id: -1 });
+    const ultimo = await Dados.findOne().sort({ createdAt: -1 });
     res.json(ultimo);
   } catch {
     res.sendStatus(500);
