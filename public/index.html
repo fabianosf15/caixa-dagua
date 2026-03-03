@@ -22,12 +22,6 @@ h1 { margin-top: 20px; }
   color: #38bdf8;
 }
 
-.legenda-periodo {
-  margin-bottom: 10px;
-  font-size: 0.95em;
-  color: #cbd5e1;
-}
-
 .conteiner {
   display: flex;
   flex-direction: column;
@@ -89,10 +83,6 @@ canvas {
 
 <div class="conteiner">
 
-  <div id="legendaPeriodo" class="legenda-periodo">
-    Mostrando todos os registros
-  </div>
-
   <canvas id="grafico" width="700" height="280"></canvas>
   <div id="mensagem" class="mensagem"></div>
 
@@ -116,27 +106,9 @@ document.addEventListener("DOMContentLoaded", () => {
   const horaInicioInput = document.getElementById('horaInicio');
   const horaFimInput = document.getElementById('horaFim');
   const mensagem = document.getElementById('mensagem');
-  const legendaPeriodo = document.getElementById('legendaPeriodo');
-
-  function atualizarLegenda() {
-    if (!seletorData.value) {
-      legendaPeriodo.innerText = "Mostrando todos os registros";
-      return;
-    }
-
-    const dataFormatada = new Date(seletorData.value)
-      .toLocaleDateString('pt-BR');
-
-    const horaInicio = horaInicioInput.value || "00:00";
-    const horaFim = horaFimInput.value || "23:59";
-
-    legendaPeriodo.innerText =
-      `Data: ${dataFormatada} | Período: ${horaInicio} até ${horaFim}`;
-  }
 
   function atualizarGrafico() {
     paginaAtual = 1;
-    atualizarLegenda();
     criarGrafico(paginaAtual);
   }
 
@@ -178,17 +150,11 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function gerarTituloPeriodo() {
-  const horaInicio = horaInicioInput.value || "00:00";
-  const horaFim = horaFimInput.value || "23:59";
-
-  if (horaInicioInput.value || horaFimInput.value) {
+    const horaInicio = horaInicioInput.value || "00:00";
+    const horaFim = horaFimInput.value || "23:59";
     return `Período: ${horaInicio} até ${horaFim}`;
   }
 
-  return "Período do dia selecionado";
-}
-  
-  
   async function criarGrafico(pagina) {
     const dadosPorPagina = await lerDados(pagina);
     numpaginas.innerText = pagina;
@@ -209,8 +175,10 @@ document.addEventListener("DOMContentLoaded", () => {
     if (meuGrafico) meuGrafico.destroy();
 
     const timestamps = dadosPorPagina.map(item => {
-      const date = new Date(item.createdAt || item.timestamp);
-      return date.toLocaleString('pt-BR');
+      const date = new Date(item.createdAt);
+      return date.toLocaleTimeString('pt-BR', {
+        timeZone: 'America/Fortaleza'
+      });
     });
 
     const luminosidade = dadosPorPagina.map(item => item.luminosidade);
@@ -230,17 +198,17 @@ document.addEventListener("DOMContentLoaded", () => {
         }]
       },
       options: {
-  responsive: true,
-  plugins: {
-    legend: { display: false },
-    title: {
-      display: true,
-      color: '#ffffff',
-      font: { size: 18 },
-      text: gerarTituloPeriodo()
-    }
-  }
-}
+        responsive: true,
+        plugins: {
+          legend: { display: false },
+          title: {
+            display: true,
+            text: gerarTituloPeriodo(),
+            color: '#ffffff',
+            font: { size: 18 }
+          }
+        }
+      }
     });
   }
 
@@ -256,7 +224,6 @@ document.addEventListener("DOMContentLoaded", () => {
     criarGrafico(paginaAtual);
   };
 
-  atualizarLegenda();
   criarGrafico(1);
   atualizarValorAtual();
   setInterval(atualizarValorAtual, 10000);
