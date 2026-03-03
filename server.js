@@ -50,9 +50,11 @@ app.get('/dados', async (req, res) => {
         [horaF, minF] = horaFim.split(':').map(Number);
       }
 
-      // Brasil UTC-3 → converter para UTC
-      const inicio = new Date(Date.UTC(ano, mes - 1, dia, horaIni + 3, minIni, 0));
-      const fim = new Date(Date.UTC(ano, mes - 1, dia, horaF + 3, minF, 59));
+      const inicioLocal = new Date(ano, mes - 1, dia, horaIni, minIni, 0);
+      const fimLocal = new Date(ano, mes - 1, dia, horaF, minF, 59);
+
+      const inicio = new Date(inicioLocal.getTime());
+      const fim = new Date(fimLocal.getTime());
 
       filtro = {
         createdAt: { $gte: inicio, $lte: fim }
