@@ -35,28 +35,32 @@ app.get('/dados', async (req, res) => {
     let filtro = {};
 
     if (data) {
-      const inicio = new Date(`${data}T00:00:00.000Z`);
-      const fim = new Date(`${data}T23:59:59.999Z`);
+      const [ano, mes, dia] = data.split('-').map(Number);
 
-      if (horaInicio || horaFim) {
-        const horaIni = horaInicio || "00:00";
-        const horaF = horaFim || "23:59";
+      let horaIni = 0;
+      let minIni = 0;
+      let horaF = 23;
+      let minF = 59;
 
-        const inicioHora = new Date(`${data}T${horaIni}:00.000Z`);
-        const fimHora = new Date(`${data}T${horaF}:59.999Z`);
-
-        filtro = {
-          createdAt: { $gte: inicioHora, $lte: fimHora }
-        };
-      } else {
-        filtro = {
-          createdAt: { $gte: inicio, $lte: fim }
-        };
+      if (horaInicio) {
+        [horaIni, minIni] = horaInicio.split(':').map(Number);
       }
+
+      if (horaFim) {
+        [horaF, minF] = horaFim.split(':').map(Number);
+      }
+
+      // Brasil UTC-3 → converter para UTC
+      const inicio = new Date(Date.UTC(ano, mes - 1, dia, horaIni + 3, minIni, 0));
+      const fim = new Date(Date.UTC(ano, mes - 1, dia, horaF + 3, minF, 59));
+
+      filtro = {
+        createdAt: { $gte: inicio, $lte: fim }
+      };
     }
 
     const dados = await Dados.find(filtro)
-      .sort({ createdAt: -1 })
+      .sort({ _id: -1 })
       .skip((pagina - 1) * itensPorPagina)
       .limit(itensPorPagina);
 
@@ -73,7 +77,7 @@ app.get('/dados', async (req, res) => {
 
 app.get('/dados/ultimo', async (req, res) => {
   try {
-    const ultimo = await Dados.findOne().sort({ createdAt: -1 });
+    const ultimo = await Dados.findOne().sort({ _id: -1 });
     res.json(ultimo);
   } catch {
     res.sendStatus(500);

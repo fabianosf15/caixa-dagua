@@ -197,11 +197,8 @@ document.addEventListener("DOMContentLoaded", () => {
     if (meuGrafico) meuGrafico.destroy();
 
     const timestamps = dadosPorPagina.map(item => {
-  const date = new Date(item.createdAt);
-
-  return date.toLocaleString('pt-BR', {
-    timeZone: 'America/Fortaleza'
-  });
+      const date = new Date(item.createdAt || item.timestamp);
+      return date.toLocaleString('pt-BR');
     });
 
     const luminosidade = dadosPorPagina.map(item => item.luminosidade);
