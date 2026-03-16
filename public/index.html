@@ -76,158 +76,243 @@ canvas {
 <div class="valor-atual" id="valorAtual">-- lx</div>
 
 <div class="filtros">
-  <input type="date" id="seletorData">
-  <input type="time" id="horaInicio">
-  <input type="time" id="horaFim">
+<input type="date" id="seletorData">
+<input type="time" id="horaInicio">
+<input type="time" id="horaFim">
 </div>
 
 <div class="conteiner">
 
-  <canvas id="grafico" width="700" height="280"></canvas>
-  <div id="mensagem" class="mensagem"></div>
+<canvas id="grafico" width="700" height="280"></canvas>
+<div id="mensagem" class="mensagem"></div>
 
-  <div class="buttons">
-    <button id="anterior">Anterior</button>
-    <p id="num"></p>
-    <button id="proximo">Próximo</button>
-  </div>
+<div class="buttons">
+<button id="anterior">Anterior</button>
+<p id="num"></p>
+<button id="proximo">Próximo</button>
+</div>
 
 </div>
 
 <script>
 document.addEventListener("DOMContentLoaded", () => {
 
-  let paginaAtual = 1;
-  let meuGrafico;
+let paginaAtual = 1;
+let meuGrafico;
 
-  const numpaginas = document.getElementById('num');
-  const valorAtual = document.getElementById('valorAtual');
-  const seletorData = document.getElementById('seletorData');
-  const horaInicioInput = document.getElementById('horaInicio');
-  const horaFimInput = document.getElementById('horaFim');
-  const mensagem = document.getElementById('mensagem');
+const numpaginas = document.getElementById('num');
+const valorAtual = document.getElementById('valorAtual');
+const seletorData = document.getElementById('seletorData');
+const horaInicioInput = document.getElementById('horaInicio');
+const horaFimInput = document.getElementById('horaFim');
+const mensagem = document.getElementById('mensagem');
 
-  function atualizarGrafico() {
-    paginaAtual = 1;
-    criarGrafico(paginaAtual);
-  }
+function atualizarGrafico() {
+paginaAtual = 1;
+criarGrafico(paginaAtual);
+}
 
-  seletorData.addEventListener("change", atualizarGrafico);
-  horaInicioInput.addEventListener("change", atualizarGrafico);
-  horaFimInput.addEventListener("change", atualizarGrafico);
+seletorData.addEventListener("change", atualizarGrafico);
+horaInicioInput.addEventListener("change", atualizarGrafico);
+horaFimInput.addEventListener("change", atualizarGrafico);
 
-  async function lerDados(pagina) {
-    try {
-      let url = `/dados?pagina=${pagina}`;
+async function lerDados(pagina) {
 
-      if (seletorData.value)
-        url += `&data=${seletorData.value}`;
+try {
 
-      if (horaInicioInput.value)
-        url += `&horaInicio=${horaInicioInput.value}`;
+let url = `/dados?pagina=${pagina}`;
 
-      if (horaFimInput.value)
-        url += `&horaFim=${horaFimInput.value}`;
+if (seletorData.value)
+url += `&data=${seletorData.value}`;
 
-      const resposta = await fetch(url);
-      return await resposta.json();
-    } catch (error) {
-      console.error("Erro ao ler dados:", error);
-      return [];
-    }
-  }
+if (horaInicioInput.value)
+url += `&horaInicio=${horaInicioInput.value}`;
 
-  async function atualizarValorAtual() {
-    try {
-      const resposta = await fetch('/dados/ultimo');
-      const dado = await resposta.json();
-      if (dado && dado.luminosidade !== undefined) {
-        valorAtual.innerText = dado.luminosidade + " lx";
-      }
-    } catch (error) {
-      console.error("Erro ao buscar último valor:", error);
-    }
-  }
+if (horaFimInput.value)
+url += `&horaFim=${horaFimInput.value}`;
 
-  function gerarTituloPeriodo() {
-    const horaInicio = horaInicioInput.value || "00:00";
-    const horaFim = horaFimInput.value || "23:59";
-    return `Período: ${horaInicio} até ${horaFim}`;
-  }
+const resposta = await fetch(url);
+return await resposta.json();
 
-  async function criarGrafico(pagina) {
-    const dadosPorPagina = await lerDados(pagina);
-    numpaginas.innerText = pagina;
+} catch (error) {
 
-    if (dadosPorPagina.mensagem) {
-      mensagem.innerText = dadosPorPagina.mensagem;
-      if (meuGrafico) meuGrafico.destroy();
-      return;
-    }
+console.error("Erro ao ler dados:", error);
+return [];
 
-    mensagem.innerText = "";
+}
 
-    if (!dadosPorPagina.length) {
-      if (meuGrafico) meuGrafico.destroy();
-      return;
-    }
+}
 
-    if (meuGrafico) meuGrafico.destroy();
+async function atualizarValorAtual() {
 
-    const timestamps = dadosPorPagina.map(item => {
-  const date = new Date(item.createdAt);
+try {
 
-  return date.toLocaleString('pt-BR', {
-    timeZone: 'America/Fortaleza'
-  });
+const resposta = await fetch('/dados/ultimo');
+const dado = await resposta.json();
+
+if (dado && dado.luminosidade !== undefined) {
+valorAtual.innerText = dado.luminosidade + " lx";
+}
+
+} catch (error) {
+
+console.error("Erro ao buscar último valor:", error);
+
+}
+
+}
+
+function gerarTituloPeriodo() {
+
+const horaInicio = horaInicioInput.value || "00:00";
+const horaFim = horaFimInput.value || "23:59";
+
+return `Período: ${horaInicio} até ${horaFim}`;
+
+}
+
+async function criarGrafico(pagina) {
+
+const dadosPorPagina = await lerDados(pagina);
+numpaginas.innerText = pagina;
+
+if (dadosPorPagina.mensagem) {
+
+mensagem.innerText = dadosPorPagina.mensagem;
+
+if (meuGrafico)
+meuGrafico.destroy();
+
+return;
+
+}
+
+mensagem.innerText = "";
+
+if (!dadosPorPagina.length) {
+
+if (meuGrafico)
+meuGrafico.destroy();
+
+return;
+
+}
+
+if (meuGrafico)
+meuGrafico.destroy();
+
+const timestamps = dadosPorPagina.map(item => {
+
+const date = new Date(item.createdAt);
+
+return date.toLocaleString('pt-BR', {
+timeZone: 'America/Fortaleza'
 });
 
-    const luminosidade = dadosPorPagina.map(item => item.luminosidade);
+});
 
-    const ctx = document.getElementById('grafico').getContext('2d');
+const luminosidade = dadosPorPagina.map(item => item.luminosidade);
 
-    meuGrafico = new Chart(ctx, {
-      type: 'line',
-      data: {
-        labels: timestamps,
-        datasets: [{
-          data: luminosidade,
-          borderColor: '#38bdf8',
-          borderWidth: 3,
-          tension: 0.35,
-          fill: false
-        }]
-      },
-      options: {
-        responsive: true,
-        plugins: {
-          legend: { display: false },
-          title: {
-            display: true,
-            text: gerarTituloPeriodo(),
-            color: '#ffffff',
-            font: { size: 18 }
-          }
-        }
-      }
-    });
-  }
+const porcentagens = dadosPorPagina.map(item => {
 
-  document.getElementById("anterior").onclick = () => {
-    if (paginaAtual > 1) {
-      paginaAtual--;
-      criarGrafico(paginaAtual);
-    }
-  };
+const minimo = 3966;
+const maximo = 4095;
 
-  document.getElementById("proximo").onclick = () => {
-    paginaAtual++;
-    criarGrafico(paginaAtual);
-  };
+let p = (item.luminosidade - minimo) * 100 / (maximo - minimo);
 
-  criarGrafico(1);
-  atualizarValorAtual();
-  setInterval(atualizarValorAtual, 10000);
+if (p < 0) p = 0;
+if (p > 100) p = 100;
+
+return p.toFixed(1);
+
+});
+
+const ctx = document.getElementById('grafico').getContext('2d');
+
+meuGrafico = new Chart(ctx, {
+
+type: 'line',
+
+data: {
+
+labels: timestamps,
+
+datasets: [{
+
+data: luminosidade,
+borderColor: '#38bdf8',
+borderWidth: 3,
+tension: 0.35,
+fill: false
+
+}]
+
+},
+
+options: {
+
+responsive: true,
+
+plugins: {
+
+legend: { display: false },
+
+title: {
+
+display: true,
+text: gerarTituloPeriodo(),
+color: '#ffffff',
+font: { size: 18 }
+
+},
+
+tooltip: {
+
+callbacks: {
+
+label: function(context) {
+
+const i = context.dataIndex;
+
+return `Valor: ${luminosidade[i]} | ${porcentagens[i]}%`;
+
+}
+
+}
+
+}
+
+}
+
+}
+
+});
+
+}
+
+document.getElementById("anterior").onclick = () => {
+
+if (paginaAtual > 1) {
+
+paginaAtual--;
+criarGrafico(paginaAtual);
+
+}
+
+};
+
+document.getElementById("proximo").onclick = () => {
+
+paginaAtual++;
+criarGrafico(paginaAtual);
+
+};
+
+criarGrafico(1);
+
+atualizarValorAtual();
+
+setInterval(atualizarValorAtual, 10000);
 
 });
 </script>
