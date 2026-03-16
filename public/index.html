@@ -151,7 +151,7 @@ const resposta = await fetch('/dados/ultimo');
 const dado = await resposta.json();
 
 if (dado && dado.luminosidade !== undefined) {
-valorAtual.innerText = dado.luminosidade + " lx";
+valorAtual.innerText = dado.luminosidade;
 }
 
 } catch (error) {
@@ -215,7 +215,7 @@ const luminosidade = dadosPorPagina.map(item => item.luminosidade);
 
 const porcentagens = dadosPorPagina.map(item => {
 
-const minimo = 3966;
+const minimo = 3958;
 const maximo = 4095;
 
 let p = (item.luminosidade - minimo) * 100 / (maximo - minimo);
