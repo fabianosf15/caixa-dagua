@@ -151,7 +151,15 @@ const resposta = await fetch('/dados/ultimo');
 const dado = await resposta.json();
 
 if (dado && dado.luminosidade !== undefined) {
-valorAtual.innerText = dado.luminosidade;
+const minimo = 3958;
+const maximo = 4095;
+
+let porcentagem = (dado.luminosidade - minimo) * 100 / (maximo - minimo);
+
+if (porcentagem < 0) porcentagem = 0;
+if (porcentagem > 100) porcentagem = 100;
+
+valorAtual.innerText = dado.luminosidade + " | " + porcentagem.toFixed(1) + "%";
 }
 
 } catch (error) {
